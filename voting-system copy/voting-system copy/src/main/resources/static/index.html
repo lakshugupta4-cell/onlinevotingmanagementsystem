@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Voting System</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+
+        h1 {
+            text-align: center;
+            padding: 20px;
+            color: #38bdf8;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 900px;
+            margin: auto;
+        }
+
+        .card {
+            background: #111827;
+            border: 1px solid #1f2937;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.6);
+            transition: 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 20px rgba(56,189,248,0.2);
+        }
+
+        input {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 6px;
+            border: 1px solid #374151;
+            background: #1f2937;
+            color: white;
+            width: 80%;
+        }
+
+        input:focus {
+            outline: none;
+            border: 1px solid #38bdf8;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            background: linear-gradient(45deg, #ef4444, #3b82f6);
+            color: white;
+            cursor: pointer;
+            transition: 0.3s;
+            font-weight: bold;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(59,130,246,0.7);
+        }
+
+        .candidate {
+            background: #1f2937;
+            border: 1px solid #374151;
+            margin: 10px 0;
+            padding: 12px;
+            border-radius: 8px;
+            transition: 0.3s;
+        }
+
+        .candidate:hover {
+            border-color: #38bdf8;
+            box-shadow: 0 0 10px rgba(56,189,248,0.3);
+        }
+
+        .winner {
+            font-size: 20px;
+            font-weight: bold;
+            color: #f43f5e;
+            margin-top: 10px;
+        }
+
+        .section-title {
+            margin-top: 10px;
+            color: #60a5fa;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>🗳️ Online Voting System</h1>
+
+<div class="container">
+
+    <!-- REGISTER -->
+    <div class="card">
+        <h2 class="section-title">Register User</h2>
+        <input id="name" placeholder="Enter Name"><br>
+        <input id="email" placeholder="Enter Email"><br>
+        <button onclick="register()">Register</button>
+    </div>
+
+    <!-- ADD CANDIDATE -->
+    <div class="card">
+        <h2 class="section-title">Add Candidate</h2>
+        <input id="cname" placeholder="Candidate Name"><br>
+        <input id="party" placeholder="Party"><br>
+        <button onclick="addCandidate()">Add Candidate</button>
+    </div>
+
+    <!-- CANDIDATES -->
+    <div class="card">
+        <h2 class="section-title">Candidate List</h2>
+        <button onclick="getCandidates()">Refresh List</button>
+        <div id="list"></div>
+    </div>
+
+    <!-- RESULT -->
+    <div class="card">
+        <h2 class="section-title">Election Result</h2>
+        <button onclick="getResult()">Show Winner</button>
+        <p id="result" class="winner"></p>
+    </div>
+
+</div>
+
+<script>
+
+let currentUserId = null;
+
+// REGISTER
+function register() {
+    fetch('/api/register', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            name: name.value,
+            email: email.value
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        currentUserId = data.id;
+        alert("Registered! Your User ID: " + data.id);
+    });
+}
+
+// ADD CANDIDATE
+function addCandidate() {
+    fetch('/api/candidate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            name: cname.value,
+            party: party.value
+        })
+    })
+    .then(res => res.json())
+    .then(() => {
+        alert("Candidate Added!");
+        getCandidates();
+    });
+}
+
+// GET CANDIDATES
+function getCandidates() {
+    fetch('/api/candidates')
+    .then(res => res.json())
+    .then(data => {
+        let list = document.getElementById("list");
+        list.innerHTML = "";
+
+        data.forEach(c => {
+            list.innerHTML += `
+                <div class="candidate">
+                    <strong>${c.name}</strong> (${c.party}) <br>
+                    Votes: ${c.votes} <br>
+                    <button onclick="vote(${c.id})">Vote</button>
+                </div>
+            `;
+        });
+    });
+}
+
+// VOTE
+function vote(candidateId) {
+    if (!currentUserId) {
+        alert("Please register first!");
+        return;
+    }
+
+    fetch(`/api/vote?userId=${currentUserId}&candidateId=${candidateId}`, {
+        method: 'POST'
+    })
+    .then(res => res.text())
+    .then(msg => {
+        alert(msg);
+        getCandidates();
+    });
+}
+
+// RESULT
+function getResult() {
+    fetch('/api/result')
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("result").innerText =
+            `🏆 Winner: ${data.name} (${data.party}) with ${data.votes} votes`;
+    });
+}
+
+</script>
+
+</body>
+</html>
